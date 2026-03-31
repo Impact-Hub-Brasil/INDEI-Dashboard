@@ -1,7 +1,7 @@
 # 📊 INDEI Dashboard: Inteligência de Ecossistemas de Impacto
 
 ![Status do Projeto](https://img.shields.io/badge/status-em_desenvolvimento-orange)
-![Versão](https://img.shields.io/badge/versão-2.0.0--beta-blue)
+![Versão](https://img.shields.io/badge/versão-1.0.0--beta-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 O **INDEI (Índice de Ecossistemas de Impacto)** é uma ferramenta analítica de vanguarda projetada para diagnosticar a maturidade sistêmica dos 5.570 municípios brasileiros. Diferente de índices tradicionais, o INDEI utiliza uma abordagem holística e decolonial, integrando as dimensões econômica, sociocultural e ambiental para mapear o desenvolvimento territorial real.
@@ -29,10 +29,9 @@ O INDEI é sustentado por uma arquitetura de **3 Eixos** e **20 Subgrupos** de i
 Este projeto utiliza ferramentas de ponta para garantir escalabilidade e reprodutibilidade:
 
 * **Linguagem:** [Python 3.10+](https://www.python.org/)
-* **Frontend/Dashboard:** [Streamlit](https://streamlit.io/) / [Plotly](https://plotly.com/python/) (ou sua escolha: Dash/PowerBI/Shiny)
+* **Frontend/Dashboard:** [Streamlit](https://streamlit.io/) / [Plotly](https://plotly.com/python/)
 * **Manipulação de Dados:** Pandas, NumPy
 * **Geospatial:** Geopandas, Folium
-* **Automação (ETL):** Integração via API (SIDRA/IBGE, DATASUS)
 
 ---
 
