@@ -16,21 +16,41 @@ def load_data():
     try:
         url = st.secrets["csv_url"]
         df = pd.read_csv(url, sep=None, engine='python', encoding='utf-8', decimal=',', thousands='.')
+        
+        # 1. Limpa espaços extras nos nomes das colunas
         df.columns = df.columns.str.strip()
 
-        # Lista de colunas base para conversão
-        cols_base = ['Valor final INDEI', 'Eixo Econômico', 'Eixo sociocultural', 'Eixo ambiental', 
+        # 2. Padroniza apenas os nomes das colunas específicas que variam no CSV 
+        # (evitamos usar .title() em tudo para não quebrar siglas como IDH e UF)
+        renames = {
+            'Valor final INDEI': 'Valor Geral INDEI',
+            'Eixo sociocultural': 'Eixo Sociocultural',
+            'Eixo ambiental': 'Eixo Ambiental'
+        }
+        df.rename(columns=renames, inplace=True)
+
+        # 3. Lista de colunas numéricas conhecidas
+        cols_base = ['Valor Geral INDEI', 'Eixo Econômico', 'Eixo Sociocultural', 'Eixo Ambiental', 
                      'PIB per capita', 'IDH', 'População estimada']
         
         # Identifica automaticamente colunas de indicadores e médias
         cols_indicadores = [c for c in df.columns if "." in c or "Média" in c]
         todas_numericas = list(set(cols_base + cols_indicadores))
 
+        # 4. Limpeza e conversão robusta
         for col in todas_numericas:
             if col in df.columns:
-                # Limpeza robusta: remove R$, espaços e ajusta separadores
-                df[col] = df[col].astype(str).str.replace(r'[R\$\s\.]', '', regex=True).str.replace(',', '.')
+                # Remove R$ e espaços. (Não removemos o ponto para não agrupar os números)
+                df[col] = df[col].astype(str).str.replace(r'[R\$\s]', '', regex=True)
+                # Garante que a vírgula vire ponto para o Python entender como decimal
+                df[col] = df[col].str.replace(',', '.')
+                # Converte para numérico
                 df[col] = pd.to_numeric(df[col], errors='coerce')
+                
+                # 5. AJUSTE DE ESCALA 0 a 10 (exclusivo para as notas do INDEI)
+                if col not in ['PIB per capita', 'População estimada', 'IDH']:
+                    if df[col].max() > 10:
+                        df[col] = df[col] / 100
         
         return df
     except Exception as e:
@@ -61,17 +81,17 @@ with st.expander("Ver métricas detalhadas", expanded=True):
         mun_est = st.multiselect("Filtrar por Município:", options=mun_disponiveis, default=mun_disponiveis, key="est_mun")
 
     # Seleção da Variável (mantenha abaixo dos filtros de localidade)
-    metrica_descritiva = st.selectbox("Selecione a variável para análise:", options=colunas_stats, index=colunas_stats.index('Valor final INDEI'))
+    metrica_descritiva = st.selectbox("Selecione a variável para análise:", options=colunas_stats, index=colunas_stats.index('Valor Geral INDEI') if 'Valor Geral INDEI' in colunas_stats else 0)
     
     if metrica_descritiva:
         data = df_raw[metrica_descritiva].dropna()
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Média geral Brasil", f"{data.mean():.3f}")
-        c2.metric("Mediana  geral Brasil", f"{data.median():.3f}")
-        c3.metric("Desvio Padrão  geral Brasil", f"{data.std():.3f}")
-        c4.metric("Amostra (n) geral Brasil", len(data))
+        c1.metric("Média Geral Brasil", f"{data.mean():.3f}")
+        c2.metric("Mediana Geral Brasil", f"{data.median():.3f}")
+        c3.metric("Desvio Padrão Geral Brasil", f"{data.std():.3f}")
+        c4.metric("Amostra (n) Geral Brasil", len(data))
     
-    # Aplicação dos filtros no dataframe para o cálculo
+# Aplicação dos filtros no dataframe para o cálculo regional/local
 df_est_filtrado = df_raw[
     (df_raw['Região'].isin(reg_est)) & 
     (df_raw['Estado'].isin(uf_est)) & 
@@ -79,14 +99,15 @@ df_est_filtrado = df_raw[
 ]
 
 if not df_est_filtrado.empty and metrica_descritiva:
-    data = df_est_filtrado[metrica_descritiva].dropna()
+    data_filtrada = df_est_filtrado[metrica_descritiva].dropna()
     
-    if len(data) > 0:
+    if len(data_filtrada) > 0:
+        st.markdown(f"**Estatísticas para a Seleção Atual ({len(data_filtrada)} ecossistemas):**")
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Média", f"{data.mean():.3f}")
-        c2.metric("Mediana", f"{data.median():.3f}")
-        c3.metric("Desvio Padrão", f"{data.std():.3f}")
-        c4.metric("Amostra (n)", len(data))
+        c1.metric("Média", f"{data_filtrada.mean():.3f}")
+        c2.metric("Mediana", f"{data_filtrada.median():.3f}")
+        c3.metric("Desvio Padrão", f"{data_filtrada.std():.3f}")
+        c4.metric("Amostra (n)", len(data_filtrada))
     else:
         st.warning("Não há dados numéricos para os filtros selecionados.")
 else:
@@ -94,7 +115,7 @@ else:
 
 st.divider()
 
-if len(data) > 0:
+if not df_est_filtrado.empty and len(data_filtrada) > 0:
     # --- NOVO: Boxplot de Distribuição Multidimensional ---
     st.markdown("#### Distribuição Visual (Boxplot Avançado)")
 
@@ -180,13 +201,13 @@ st.info("""
 * **Valores de Referência (Módulo):**
     * **0,70 a 1,00:** Correlação Forte.
     * **0,40 a 0,70:** Correlação Moderada (O IDH tem correlação de 0,50 com o INDEI).
-    * **0,00 a 0,40:** Correlação Fraca/Baixa (O PIB per capita tem correlação de 0,37 com o INDEI ).
+    * **0,00 a 0,40:** Correlação Fraca/Baixa (O PIB per capita tem correlação de 0,37 com o INDEI).
 """)
 
 col_h1, col_h2 = st.columns([1, 3])
 with col_h1:
     metodo = st.radio("Método:", ["Pearson", "Spearman"])
-    default_vars = [c for c in ['Valor final INDEI', 'Eixo Econômico', 'Eixo sociocultural', 'Eixo ambiental', 'IDH', 'PIB per capita'] if c in colunas_stats]
+    default_vars = [c for c in ['Valor Geral INDEI', 'Eixo Econômico', 'Eixo Sociocultural', 'Eixo Ambiental', 'IDH', 'PIB per capita'] if c in colunas_stats]
     vars_h = st.multiselect("Variáveis:", options=colunas_stats, default=default_vars)
 
 with col_h2:
@@ -202,11 +223,16 @@ st.header("3. Relação Bivariada (2D Scatter Plot)")
 with st.expander("Configurar Eixos do Gráfico", expanded=True):
     col_2d1, col_2d2, col_2d3 = st.columns(3)
     with col_2d1:
-        eixo_x_2d = st.selectbox("Eixo X:", options=colunas_stats, index=colunas_stats.index('Eixo Econômico'))
+        eixo_x_2d = st.selectbox("Eixo X:", options=colunas_stats, index=colunas_stats.index('Eixo Econômico') if 'Eixo Econômico' in colunas_stats else 0)
     with col_2d2:
-        eixo_y_2d = st.selectbox("Eixo Y:", options=colunas_stats, index=colunas_stats.index('Eixo sociocultural'))
+        eixo_y_2d = st.selectbox("Eixo Y:", options=colunas_stats, index=colunas_stats.index('Eixo Sociocultural') if 'Eixo Sociocultural' in colunas_stats else 0)
     with col_2d3:
-        cor_2d = st.selectbox("Colorir por:", ["Região", "Estado", "Quartil Geral", "Quartil Econômico", "Quartil Sociocultural", "Quartil Ambiental"])
+        # Certificando-se de que os campos de Quartil existam antes de permitir a seleção
+        opcoes_cor = ["Região", "Estado"]
+        quartis = ["Quartil Geral", "Quartil Econômico", "Quartil Sociocultural", "Quartil Ambiental"]
+        opcoes_cor.extend([q for q in quartis if q in df_raw.columns])
+        
+        cor_2d = st.selectbox("Colorir por:", opcoes_cor)
 
 fig_2d = px.scatter(
     df_raw, x=eixo_x_2d, y=eixo_y_2d, color=cor_2d,
@@ -221,11 +247,11 @@ st.divider()
 st.header("4. Visualização Multidimensional (3D)")
 col_3d1, col_3d2, col_3d3 = st.columns(3)
 with col_3d1:
-    x_3d = st.selectbox("Eixo X (3D):", options=colunas_stats, index=colunas_stats.index('Eixo Econômico'), key="x3")
+    x_3d = st.selectbox("Eixo X (3D):", options=colunas_stats, index=colunas_stats.index('Eixo Econômico') if 'Eixo Econômico' in colunas_stats else 0, key="x3")
 with col_3d2:
-    y_3d = st.selectbox("Eixo Y (3D):", options=colunas_stats, index=colunas_stats.index('Eixo sociocultural'), key="y3")
+    y_3d = st.selectbox("Eixo Y (3D):", options=colunas_stats, index=colunas_stats.index('Eixo Sociocultural') if 'Eixo Sociocultural' in colunas_stats else 0, key="y3")
 with col_3d3:
-    z_3d = st.selectbox("Eixo Z (3D):", options=colunas_stats, index=colunas_stats.index('Eixo ambiental'), key="z3")
+    z_3d = st.selectbox("Eixo Z (3D):", options=colunas_stats, index=colunas_stats.index('Eixo Ambiental') if 'Eixo Ambiental' in colunas_stats else 0, key="z3")
 
 fig_3d = px.scatter_3d(
     df_raw, x=x_3d, y=y_3d, z=z_3d, color='Região',

@@ -4,36 +4,56 @@ import plotly.express as px
 
 # Configuração da página
 st.set_page_config(page_title="Geral", page_icon="🌍", layout="wide")
-
-# Título na Barra Lateral
-st.sidebar.title("Geral")
+st.sidebar.markdown("# Geral")
 
 # 1. Carregamento dos Dados
 @st.cache_data
 def load_data():
     try:
         url = st.secrets["csv_url"]
-        # Carrega tratando decimais e milhares do padrão brasileiro
+        # Carrega os dados tratando o padrão brasileiro
         df = pd.read_csv(url, sep=None, engine='python', encoding='utf-8', decimal=',', thousands='.')
-        df.columns = df.columns.str.strip()
-
-        # LIMPEZA AVANÇADA: Remove "R$", espaços e trata colunas numéricas
-        cols_numericas = ['Valor final INDEI', 'Eixo Econômico', 'Eixo sociocultural', 'Eixo ambiental', 
-                         'PIB per capita', 'IDH', 'População estimada']
         
-        # Adiciona colunas de indicadores (ex: EC1.1, SOC2.1) à lista de limpeza
+        # 1. Limpa espaços extras nos nomes das colunas
+        df.columns = df.columns.str.strip()
+        
+        # 2. Padroniza apenas os nomes das colunas específicas que variam no CSV 
+        # (evitamos usar .title() em tudo para não quebrar siglas como IDH e UF)
+        renames = {
+            'Valor final INDEI': 'Valor Geral INDEI',
+            'Eixo sociocultural': 'Eixo Sociocultural',
+            'Eixo ambiental': 'Eixo Ambiental'
+        }
+        df.rename(columns=renames, inplace=True)
+        
+        # 3. Lista de colunas numéricas conhecidas
+        cols_base = ['Valor Geral INDEI', 'Eixo Econômico', 'Eixo Sociocultural', 'Eixo Ambiental', 
+                     'PIB per capita', 'IDH', 'População estimada']
+        
+        # Adiciona os indicadores individuais dinamicamente (ex: EC1.1, SOC2.1)
         cols_indicadores = [c for c in df.columns if "." in c or "Média" in c]
-        todas_numericas = cols_numericas + cols_indicadores
+        todas_numericas = list(set(cols_base + cols_indicadores))
 
+        # 4. Limpeza e conversão robusta
         for col in todas_numericas:
             if col in df.columns:
-                # Transforma em string, remove o que não é número/vírgula/ponto e converte
-                df[col] = df[col].astype(str).str.replace(r'[R\$\s\.]', '', regex=True).str.replace(',', '.')
+                # Remove R$ e espaços. (Não removemos o ponto para não agrupar os números)
+                df[col] = df[col].astype(str).str.replace(r'[R\$\s]', '', regex=True)
+                # Garante que a vírgula vire ponto para o Python entender como decimal
+                df[col] = df[col].str.replace(',', '.')
+                # Converte para numérico
                 df[col] = pd.to_numeric(df[col], errors='coerce')
+                
+                # 5. AJUSTE DE ESCALA 0 a 10 (exclusivo para as notas do INDEI)
+                # Se os dados vieram como 434 em vez de 4.34, forçamos a divisão por 100.
+                # Ignoramos PIB, População e IDH para não alterar seus valores originais.
+                if col not in ['PIB per capita', 'População estimada', 'IDH']:
+                    if df[col].max() > 10:
+                        df[col] = df[col] / 100
         
         return df
     except Exception as e:
-        st.error(f"Erro ao processar o metabolismo dos dados: {e}")
+        st.error(f"Erro ao carregar dados: {e}")
         st.stop()
 
 df_raw = load_data()
@@ -47,12 +67,12 @@ st.header("1. Panorama Geográfico")
 st.markdown("Visualize a distribuição da prosperidade pelos estados brasileiros através de diferentes dimensões.")
 
 with st.expander("Selecionar Métrica do Mapa", expanded=True):
-    # Mapeamento das opções conforme solicitado
+    # Dicionário alinhado exatamente com os nomes padronizados no load_data
     map_metrica_opcoes = {
-        "Valor geral INDEI": "Valor final INDEI",
+        "Valor geral INDEI": "Valor Geral INDEI",
         "Valor Eixo Econômico": "Eixo Econômico",
-        "Valor Eixo Sociocultural": "Eixo Sociocultural",
-        "Valor Eixo Ambiental": "Eixo Ambiental"
+        "Valor eixo sociocultural": "Eixo Sociocultural",
+        "Valor eixo ambiental": "Eixo Ambiental"
     }
     map_metrica_label = st.selectbox(
         "Escolha a métrica para visualizar no mapa:", 
@@ -90,20 +110,25 @@ with st.expander("Filtros do Ranking", expanded=True):
         uf_rank = st.multiselect("Estados", df_raw[df_raw['Região'].isin(reg_rank)]['Estado'].unique(), 
                                  default=df_raw[df_raw['Região'].isin(reg_rank)]['Estado'].unique(), key="rank_uf")
     with col_r3:
-        # Corrigido: definindo nivel_geo para evitar o NameError
         nivel_geo = st.selectbox("Nível Geográfico", ["Municípios", "Estados", "Regiões"], key="rank_nivel")
     with col_r4:
         metrica_rank_label = st.selectbox("Métrica", ["Geral", "Econômico", "Sociocultural", "Ambiental"], key="rank_met")
 
 df_rank_filtered = df_raw[(df_raw['Região'].isin(reg_rank)) & (df_raw['Estado'].isin(uf_rank))]
-metrica_col = {"Geral": "Valor final INDEI", "Econômico": "Eixo Econômico", "Sociocultural": "Eixo sociocultural", "Ambiental": "Eixo ambiental"}[metrica_rank_label]
+
+# Dicionário de métricas do ranking alinhado com as colunas reais
+metrica_col = {
+    "Geral": "Valor Geral INDEI", 
+    "Econômico": "Eixo Econômico", 
+    "Sociocultural": "Eixo Sociocultural", 
+    "Ambiental": "Eixo Ambiental"
+}[metrica_rank_label]
 
 if not df_rank_filtered.empty:
     group_cols = {"Municípios": "Ecossistema", "Estados": "Estado", "Regiões": "Região"}[nivel_geo]
     df_ranking_grouped = df_rank_filtered.groupby(group_cols)[metrica_col].mean().reset_index()
     top10 = df_ranking_grouped.nlargest(10, metrica_col)
     
-    # Corrigido: usando nivel_geo que agora está definido
     fig_bar = px.bar(top10, x=group_cols, y=metrica_col, color=group_cols, text_auto='.2f', 
                      title=f"Destaques: Top 10 {nivel_geo} - {metrica_rank_label}")
     fig_bar.update_xaxes(categoryorder='total descending')
@@ -136,7 +161,7 @@ with st.expander("Configurar Análise de Subgrupo", expanded=True):
         else:
             territorio = st.multiselect("Selecionar Regiões", df_raw['Região'].unique(), default=df_raw['Região'].unique())
 
-# Identifica colunas do subgrupo (ex: EC1.1, EC1.2...)
+# Identifica colunas do subgrupo selecionado (ex: EC1.1, EC1.2...)
 cols_indicadores = [c for c in df_raw.columns if c.startswith(f"{sub_sel}.")]
 
 if nivel_ind == "Municipal":
