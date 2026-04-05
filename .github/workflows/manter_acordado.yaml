@@ -1,0 +1,16 @@
+name: Manter App Acordado
+
+on:
+  schedule:
+    # Executa a cada 24 horas (ajustável via Cron)
+    - cron: '0 12 * * *' 
+  workflow_dispatch: # Permite que você execute manualmente para testar
+
+jobs:
+  ping_app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acessar a URL do Streamlit
+        run: |
+          curl -s https://indei-dashboard.streamlit.app/ > /dev/null
+          echo "App acessado com sucesso em $(date)"
