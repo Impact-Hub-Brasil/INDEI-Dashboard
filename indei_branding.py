@@ -43,7 +43,7 @@ IH_BRASIL_LOGO_PATH = ROOT / "IH Brasil - logo.png"
 SIDEBAR_INDEI_ABOUT_MD = """
 O INDEI é um índice que mede a prosperidade sistêmica dos municípios brasileiros com mais de 100 mil habitantes, avaliando o território em três eixos articulados: econômico-empresarial, sociocultural e ambiental.
 
-Ele não é só um ranking: funciona como ferramenta de diagnóstico para orientar estratégias de desenvolvimento sustentável e orquestração ecossistêmica, mostrando onde estão forças, fragilidades e “sementes de prosperidade” em cada cidade.
+Além de um ranking, o INDEI também funciona como ferramenta de diagnóstico para orientar estratégias de desenvolvimento sustentável e orquestração ecossistêmica, mostrando onde estão forças, fragilidades e “sementes de prosperidade” em cada cidade.
 
 Realização: Impact Hub Brasil  |  Contato: contato@impacthub.net
 
