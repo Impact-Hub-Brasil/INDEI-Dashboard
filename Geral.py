@@ -151,6 +151,67 @@ st.divider()
 st.header("3. Detalhamento de Indicadores")
 st.markdown("Analise a anatomia da medição através dos 63 indicadores e 20 subgrupos.")
 
+with st.expander("Ver tabela de subgrupos (código, nome e descritivo)", expanded=False):
+    descritivos_subgrupos = {
+        "EC1": "Densidade econômico-empresarial: mede a vitalidade da atividade econômica local, pela concentração de empresas (de MEI a grandes) e presença de atividades de maior valor agregado, como inovação e pesquisa.",
+        "EC2": "Diversidade econômico-empresarial: avalia a heterogeneidade da economia, a presença de negócios de impacto e empresas inovadoras, incluindo diversidade de gênero em lideranças, como proxy de resiliência e equidade.",
+        "EC3": "Conectividade empresarial: observa a infraestrutura que cola o ecossistema (coworkings, incubadoras, polos tech, associações), indicando capacidade de articulação e troca entre atores econômicos.",
+        "EC4": "Fluidez financeira: mede o sistema circulatório do capital, considerando disponibilidade de recursos públicos e privados, fomento a áreas estratégicas e capacidade de consumo das famílias.",
+        "EC5": "Geração de riqueza: foca no saldo líquido de criação de empresas e empregos, como sinal de resiliência e dinamismo real do ambiente de negócios.",
+        "EC6": "Geração de economia de impacto: identifica o quanto o crescimento econômico se orienta por propósito, olhando para economia social e solidária, sobrevivência de empresas e adesão a práticas de responsabilidade socioambiental.",
+        "EC7": "Mercado de trabalho: aplica uma lente de equidade sobre o emprego, avaliando inserção de grupos historicamente vulneráveis (jovens, mulheres, PCDs, imigrantes) e oferta de trabalho decente.",
+        "EC8": "Distribuição de riqueza: verifica se a riqueza gerada melhora o padrão de vida, combinando PIB per capita, desigualdade (Gini) e custo de vida local para responder a quem serve a prosperidade.",
+        "SOC1": "Densidade e infraestrutura cultural: mensura a espinha dorsal do setor cultural (empregos, salários, museus, equipamentos, uso de leis de incentivo) como base de identidade e coesão social.",
+        "SOC2": "Densidade de talento: avalia a qualidade do capital humano por meio de trajetória educacional, escolaridade básica, ensino superior e qualificação docente.",
+        "SOC3": "Diversidade e conectividade cultural: mede inclusão, acesso à informação e abertura do sistema, via acesso digital (internet, telefonia) articulado a dimensões de igualdade e diversidade.",
+        "SOC4": "Fluidez de gasto: quantifica o fluxo de recursos para a cultura, olhando execução orçamentária, captação via leis de incentivo e capacidade institucional de executar projetos culturais.",
+        "SOC5": "Atividade / passividade cultural: observa engajamento cívico e participação na vida comunitária (presença em eventos culturais, participação eleitoral), distinguindo população mais ativa ou mais passiva.",
+        "SOC6": "Qualidade / Alegria de vida: captura o bem-estar de forma holística: segurança, justiça social, saneamento, longevidade e acesso à fruição cultural cotidiana.",
+        "SOC7": "Vida saudável: diagnostica a saúde da população, combinando determinantes sociais (ausência de fome), comportamentos (alimentação, exercício) e estrutura de saúde (densidade de médicos).",
+        "MED1": "Densidade economia rural: traça o panorama de ocupação do solo e importância do modo de vida rural, observando extensão das atividades agroflorestais e distribuição rural/urbana da população.",
+        "MED2": "Economia ambiental: mede a força da economia verde, via agricultura orgânica, cadeias de reciclagem e adesão a sistemas de gestão ambiental e de pegada de carbono.",
+        "MED3": "Mobilidade ecológica / conectividade rural: avalia padrões de deslocamento (transporte sustentável vs. motorizado individual) e vitalidade de associações de produtores e ONGs ambientais.",
+        "MED4": "Consumo responsável: monitora a transição energética e a pegada ecológica, analisando investimentos ambientais da indústria, evolução da matriz energética, novos modelos econômicos e uso de recursos.",
+        "MED5": "Qualidade do ambiente rural e urbano: faz o diagnóstico direto da saúde dos ecossistemas e da habitabilidade, com indicadores de qualidade do ar, proteção da biodiversidade e acesso a água, saneamento e energia limpa.",
+    }
+    nomes_subgrupos = {
+        "EC1": "Densidade econômico-empresarial",
+        "EC2": "Diversidade econômico-empresarial",
+        "EC3": "Conectividade empresarial",
+        "EC4": "Fluidez financeira",
+        "EC5": "Geração de riqueza",
+        "EC6": "Geração de economia de impacto",
+        "EC7": "Mercado de trabalho",
+        "EC8": "Distribuição de riqueza",
+        "SOC1": "Densidade e infraestrutura cultural",
+        "SOC2": "Densidade de talento",
+        "SOC3": "Diversidade e conectividade cultural",
+        "SOC4": "Fluidez de gasto",
+        "SOC5": "Atividade / passividade cultural",
+        "SOC6": "Qualidade / Alegria de vida",
+        "SOC7": "Vida saudável",
+        "MED1": "Densidade economia rural",
+        "MED2": "Economia ambiental",
+        "MED3": "Mobilidade ecológica / conectividade rural",
+        "MED4": "Consumo responsável",
+        "MED5": "Qualidade do ambiente rural e urbano",
+    }
+    ordem_subgrupos = [
+        "EC1", "EC2", "EC3", "EC4", "EC5", "EC6", "EC7", "EC8",
+        "SOC1", "SOC2", "SOC3", "SOC4", "SOC5", "SOC6", "SOC7",
+        "MED1", "MED2", "MED3", "MED4", "MED5",
+    ]
+    subgrupos_meta = [
+        {
+            "Código do subgrupo": codigo,
+            "Nome do subgrupo": nomes_subgrupos[codigo],
+            "Descritivo do subgrupo": descritivos_subgrupos[codigo],
+        }
+        for codigo in ordem_subgrupos
+    ]
+    st.dataframe(pd.DataFrame(subgrupos_meta), use_container_width=True, hide_index=True, height=460)
+
+
 with st.expander("Ver tabela completa de indicadores (código, nome e fonte)", expanded=False):
     indicadores_meta = [
         {"Código": "EC 1.1", "Indicador": "Quantidade de Empresas / 1.000 habitantes", "Fonte": "Mapa de Empresas + população IBGE"},
@@ -258,89 +319,10 @@ with tab_barras:
                 )
 
     cols_indicadores = [c for c in df_raw.columns if c.startswith(f"{sub_sel}.")]
-with st.expander("Ver tabela de subgrupos (código, nome e descritivo)", expanded=False):
-    descritivos_subgrupos = {
-        "EC1": "Densidade econômico-empresarial: mede a vitalidade da atividade econômica local, pela concentração de empresas (de MEI a grandes) e presença de atividades de maior valor agregado, como inovação e pesquisa.",
-        "EC2": "Diversidade econômico-empresarial: avalia a heterogeneidade da economia, a presença de negócios de impacto e empresas inovadoras, incluindo diversidade de gênero em lideranças, como proxy de resiliência e equidade.",
-        "EC3": "Conectividade empresarial: observa a infraestrutura que cola o ecossistema (coworkings, incubadoras, polos tech, associações), indicando capacidade de articulação e troca entre atores econômicos.",
-        "EC4": "Fluidez financeira: mede o sistema circulatório do capital, considerando disponibilidade de recursos públicos e privados, fomento a áreas estratégicas e capacidade de consumo das famílias.",
-        "EC5": "Geração de riqueza: foca no saldo líquido de criação de empresas e empregos, como sinal de resiliência e dinamismo real do ambiente de negócios.",
-        "EC6": "Geração de economia de impacto: identifica o quanto o crescimento econômico se orienta por propósito, olhando para economia social e solidária, sobrevivência de empresas e adesão a práticas de responsabilidade socioambiental.",
-        "EC7": "Mercado de trabalho: aplica uma lente de equidade sobre o emprego, avaliando inserção de grupos historicamente vulneráveis (jovens, mulheres, PCDs, imigrantes) e oferta de trabalho decente.",
-        "EC8": "Distribuição de riqueza: verifica se a riqueza gerada melhora o padrão de vida, combinando PIB per capita, desigualdade (Gini) e custo de vida local para responder a quem serve a prosperidade.",
-        "SOC1": "Densidade e infraestrutura cultural: mensura a espinha dorsal do setor cultural (empregos, salários, museus, equipamentos, uso de leis de incentivo) como base de identidade e coesão social.",
-        "SOC2": "Densidade de talento: avalia a qualidade do capital humano por meio de trajetória educacional, escolaridade básica, ensino superior e qualificação docente.",
-        "SOC3": "Diversidade e conectividade cultural: mede inclusão, acesso à informação e abertura do sistema, via acesso digital (internet, telefonia) articulado a dimensões de igualdade e diversidade.",
-        "SOC4": "Fluidez de gasto: quantifica o fluxo de recursos para a cultura, olhando execução orçamentária, captação via leis de incentivo e capacidade institucional de executar projetos culturais.",
-        "SOC5": "Atividade / passividade cultural: observa engajamento cívico e participação na vida comunitária (presença em eventos culturais, participação eleitoral), distinguindo população mais ativa ou mais passiva.",
-        "SOC6": "Qualidade / Alegria de vida: captura o bem-estar de forma holística: segurança, justiça social, saneamento, longevidade e acesso à fruição cultural cotidiana.",
-        "SOC7": "Vida saudável: diagnostica a saúde da população, combinando determinantes sociais (ausência de fome), comportamentos (alimentação, exercício) e estrutura de saúde (densidade de médicos).",
-        "MED1": "Densidade economia rural: traça o panorama de ocupação do solo e importância do modo de vida rural, observando extensão das atividades agroflorestais e distribuição rural/urbana da população.",
-        "MED2": "Economia ambiental: mede a força da economia verde, via agricultura orgânica, cadeias de reciclagem e adesão a sistemas de gestão ambiental e de pegada de carbono.",
-        "MED3": "Mobilidade ecológica / conectividade rural: avalia padrões de deslocamento (transporte sustentável vs. motorizado individual) e vitalidade de associações de produtores e ONGs ambientais.",
-        "MED4": "Consumo responsável: monitora a transição energética e a pegada ecológica, analisando investimentos ambientais da indústria, evolução da matriz energética, novos modelos econômicos e uso de recursos.",
-        "MED5": "Qualidade do ambiente rural e urbano: faz o diagnóstico direto da saúde dos ecossistemas e da habitabilidade, com indicadores de qualidade do ar, proteção da biodiversidade e acesso a água, saneamento e energia limpa.",
-    }
-    nomes_subgrupos = {
-        "EC1": "Densidade econômico-empresarial",
-        "EC2": "Diversidade econômico-empresarial",
-        "EC3": "Conectividade empresarial",
-        "EC4": "Fluidez financeira",
-        "EC5": "Geração de riqueza",
-        "EC6": "Geração de economia de impacto",
-        "EC7": "Mercado de trabalho",
-        "EC8": "Distribuição de riqueza",
-        "SOC1": "Densidade e infraestrutura cultural",
-        "SOC2": "Densidade de talento",
-        "SOC3": "Diversidade e conectividade cultural",
-        "SOC4": "Fluidez de gasto",
-        "SOC5": "Atividade / passividade cultural",
-        "SOC6": "Qualidade / Alegria de vida",
-        "SOC7": "Vida saudável",
-        "MED1": "Densidade economia rural",
-        "MED2": "Economia ambiental",
-        "MED3": "Mobilidade ecológica / conectividade rural",
-        "MED4": "Consumo responsável",
-        "MED5": "Qualidade do ambiente rural e urbano",
-    }
-    ordem_subgrupos = [
-        "EC1", "EC2", "EC3", "EC4", "EC5", "EC6", "EC7", "EC8",
-        "SOC1", "SOC2", "SOC3", "SOC4", "SOC5", "SOC6", "SOC7",
-        "MED1", "MED2", "MED3", "MED4", "MED5",
-    ]
-    subgrupos_meta = [
-        {
-            "Código do subgrupo": codigo,
-            "Nome do subgrupo": nomes_subgrupos[codigo],
-            "Descritivo do subgrupo": descritivos_subgrupos[codigo],
-        }
-        for codigo in ordem_subgrupos
-    ]
-    st.dataframe(pd.DataFrame(subgrupos_meta), use_container_width=True, hide_index=True, height=460)
 
-with st.expander("Configurar Análise de Subgrupo", expanded=True):
-    col_ind1, col_ind2, col_ind3, col_ind4 = st.columns(4)
-    with col_ind1:
-        eixo_sel = st.selectbox("Eixo", ["Econômico", "Sociocultural", "Ambiental"])
-    with col_ind2:
-        subgrupos = {
-            "Econômico": ["EC1", "EC2", "EC3", "EC4", "EC5", "EC6", "EC7", "EC8"],
-            "Sociocultural": ["SOC1", "SOC2", "SOC3", "SOC4", "SOC5", "SOC6", "SOC7"],
-            "Ambiental": ["MED1", "MED2", "MED3", "MED4", "MED5"]
-        }[eixo_sel]
-        sub_sel = st.selectbox("Subgrupo", subgrupos)
-    with col_ind3:
-        nivel_ind = st.selectbox("Nível de Agrupamento", ["Municipal", "Estadual", "Regional"])
-    with col_ind4:
-        if nivel_ind == "Municipal":
-            territorio = st.multiselect("Selecionar Municípios", df_raw['Ecossistema'].unique(), default=df_raw['Ecossistema'].unique()[:5])
-        elif nivel_ind == "Estadual":
-            territorio = st.multiselect("Selecionar Estados", df_raw['Estado'].unique(), default=df_raw['Estado'].unique()[:5])
-        else:
-            territorio = st.multiselect("Selecionar Regiões", df_raw['Região'].unique(), default=df_raw['Região'].unique())
 
-# Identifica colunas do subgrupo selecionado (ex: EC1.1, EC1.2...)
-cols_indicadores = [c for c in df_raw.columns if c.startswith(f"{sub_sel}.")]
+    # Identifica colunas do subgrupo selecionado (ex: EC1.1, EC1.2...)
+    cols_indicadores = [c for c in df_raw.columns if c.startswith(f"{sub_sel}.")]
 
     if nivel_ind == "Municipal":
         df_ind_final = df_raw[df_raw["Ecossistema"].isin(territorio)]
