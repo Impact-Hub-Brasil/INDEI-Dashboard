@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 import indei_branding as indei
 
@@ -217,6 +218,46 @@ with st.expander("Ver tabela completa de indicadores (código, nome e fonte)", e
     ]
     st.dataframe(pd.DataFrame(indicadores_meta), use_container_width=True, hide_index=True, height=460)
 
+tab_barras, tab_radar = st.tabs(["Gráfico de Barras", "Gráfico de Radar"])
+
+with tab_barras:
+    with st.expander("Configurar Análise de Subgrupo", expanded=True):
+        col_ind1, col_ind2, col_ind3, col_ind4 = st.columns(4)
+        with col_ind1:
+            eixo_sel = st.selectbox("Eixo", ["Econômico", "Sociocultural", "Ambiental"], key="bar_eixo")
+        with col_ind2:
+            subgrupos = {
+                "Econômico": ["EC1", "EC2", "EC3", "EC4", "EC5", "EC6", "EC7", "EC8"],
+                "Sociocultural": ["SOC1", "SOC2", "SOC3", "SOC4", "SOC5", "SOC6", "SOC7"],
+                "Ambiental": ["MED1", "MED2", "MED3", "MED4", "MED5"],
+            }[eixo_sel]
+            sub_sel = st.selectbox("Subgrupo", subgrupos, key="bar_subgrupo")
+        with col_ind3:
+            nivel_ind = st.selectbox("Nível de Agrupamento", ["Municipal", "Estadual", "Regional"], key="bar_nivel")
+        with col_ind4:
+            if nivel_ind == "Municipal":
+                territorio = st.multiselect(
+                    "Selecionar Municípios",
+                    df_raw["Ecossistema"].unique(),
+                    default=df_raw["Ecossistema"].unique()[:5],
+                    key="bar_territorio_mun",
+                )
+            elif nivel_ind == "Estadual":
+                territorio = st.multiselect(
+                    "Selecionar Estados",
+                    df_raw["Estado"].unique(),
+                    default=df_raw["Estado"].unique()[:5],
+                    key="bar_territorio_uf",
+                )
+            else:
+                territorio = st.multiselect(
+                    "Selecionar Regiões",
+                    df_raw["Região"].unique(),
+                    default=df_raw["Região"].unique(),
+                    key="bar_territorio_reg",
+                )
+
+    cols_indicadores = [c for c in df_raw.columns if c.startswith(f"{sub_sel}.")]
 with st.expander("Ver tabela de subgrupos (código, nome e descritivo)", expanded=False):
     descritivos_subgrupos = {
         "EC1": "Densidade econômico-empresarial: mede a vitalidade da atividade econômica local, pela concentração de empresas (de MEI a grandes) e presença de atividades de maior valor agregado, como inovação e pesquisa.",
@@ -301,29 +342,126 @@ with st.expander("Configurar Análise de Subgrupo", expanded=True):
 # Identifica colunas do subgrupo selecionado (ex: EC1.1, EC1.2...)
 cols_indicadores = [c for c in df_raw.columns if c.startswith(f"{sub_sel}.")]
 
-if nivel_ind == "Municipal":
-    df_ind_final = df_raw[df_raw['Ecossistema'].isin(territorio)]
-    label_col = "Ecossistema"
-elif nivel_ind == "Estadual":
-    df_ind_final = df_raw[df_raw['Estado'].isin(territorio)].groupby("Estado")[cols_indicadores].mean().reset_index()
-    label_col = "Estado"
-else:
-    df_ind_final = df_raw[df_raw['Região'].isin(territorio)].groupby("Região")[cols_indicadores].mean().reset_index()
-    label_col = "Região"
+    if nivel_ind == "Municipal":
+        df_ind_final = df_raw[df_raw["Ecossistema"].isin(territorio)]
+        label_col = "Ecossistema"
+    elif nivel_ind == "Estadual":
+        df_ind_final = df_raw[df_raw["Estado"].isin(territorio)].groupby("Estado")[cols_indicadores].mean().reset_index()
+        label_col = "Estado"
+    else:
+        df_ind_final = df_raw[df_raw["Região"].isin(territorio)].groupby("Região")[cols_indicadores].mean().reset_index()
+        label_col = "Região"
 
-if not df_ind_final.empty and cols_indicadores:
-    df_long = df_ind_final.melt(id_vars=[label_col], value_vars=cols_indicadores, var_name="Indicador", value_name="Nota")
-    fig_ind = px.bar(
-        df_long,
-        x="Indicador",
-        y="Nota",
-        color=label_col,
-        barmode="group",
-        title=f"Desempenho Detalhado - {sub_sel}",
-        text_auto=".2f",
-        color_discrete_sequence=indei.COLORWAY,
-    )
-    indei.style_plotly(fig_ind)
-    st.plotly_chart(fig_ind, use_container_width=True)
+    if not df_ind_final.empty and cols_indicadores:
+        df_long = df_ind_final.melt(id_vars=[label_col], value_vars=cols_indicadores, var_name="Indicador", value_name="Nota")
+        fig_ind = px.bar(
+            df_long,
+            x="Indicador",
+            y="Nota",
+            color=label_col,
+            barmode="group",
+            title=f"Desempenho Detalhado - {sub_sel}",
+            text_auto=".2f",
+            color_discrete_sequence=indei.COLORWAY,
+        )
+        indei.style_plotly(fig_ind)
+        st.plotly_chart(fig_ind, use_container_width=True)
+
+with tab_radar:
+    st.markdown("Compare territórios com visualização em radar por eixos, subgrupos ou indicadores.")
+
+    eixo_to_subgrupos = {
+        "Econômico": ["EC1", "EC2", "EC3", "EC4", "EC5", "EC6", "EC7", "EC8"],
+        "Sociocultural": ["SOC1", "SOC2", "SOC3", "SOC4", "SOC5", "SOC6", "SOC7"],
+        "Ambiental": ["MED1", "MED2", "MED3", "MED4", "MED5"],
+    }
+
+    c_r1, c_r2 = st.columns(2)
+    with c_r1:
+        radar_tipo = st.selectbox(
+            "Tipo de Radar",
+            [
+                "3 pontas (Eixos Gerais)",
+                "X pontas (Média dos Subgrupos)",
+                "X pontas (Indicadores do Subgrupo)",
+            ],
+            key="radar_tipo",
+        )
+    with c_r2:
+        radar_nivel = st.selectbox(
+            "Nível de Agrupamento",
+            ["Geral Brasil", "Regional", "Estadual", "Municipal"],
+            key="radar_nivel",
+        )
+
+    if radar_nivel == "Regional":
+        opcoes = sorted(df_raw["Região"].dropna().unique())
+        selecionados = st.multiselect("Selecionar Regiões", opcoes, default=opcoes, key="radar_sel_reg")
+        radar_df = df_raw[df_raw["Região"].isin(selecionados)].groupby("Região", as_index=False).mean(numeric_only=True)
+        radar_label = "Região"
+    elif radar_nivel == "Estadual":
+        opcoes = sorted(df_raw["Estado"].dropna().unique())
+        selecionados = st.multiselect("Selecionar Estados", opcoes, default=opcoes[:5], key="radar_sel_uf")
+        radar_df = df_raw[df_raw["Estado"].isin(selecionados)].groupby("Estado", as_index=False).mean(numeric_only=True)
+        radar_label = "Estado"
+    elif radar_nivel == "Municipal":
+        opcoes = sorted(df_raw["Ecossistema"].dropna().unique())
+        selecionados = st.multiselect("Selecionar Municípios", opcoes, default=opcoes[:5], key="radar_sel_mun")
+        radar_df = df_raw[df_raw["Ecossistema"].isin(selecionados)].copy()
+        radar_label = "Ecossistema"
+    else:
+        radar_df = df_raw.select_dtypes(include="number").mean(numeric_only=True).to_frame().T
+        radar_df[["Rótulo"]] = "Brasil"
+        radar_label = "Rótulo"
+
+    if radar_tipo == "3 pontas (Eixos Gerais)":
+        radar_cols = ["Eixo Econômico", "Eixo Sociocultural", "Eixo Ambiental"]
+        radar_title = "Radar dos 3 Eixos Gerais"
+    elif radar_tipo == "X pontas (Média dos Subgrupos)":
+        eixo_sub = st.selectbox("Selecionar conjunto de subgrupos", list(eixo_to_subgrupos.keys()), key="radar_subgrupo_eixo")
+        subgrupos_sel = eixo_to_subgrupos[eixo_sub]
+        radar_cols = []
+        for sg in subgrupos_sel:
+            sg_cols = [c for c in df_raw.columns if c.startswith(f"{sg}.")]
+            if sg_cols:
+                radar_df[sg] = radar_df[sg_cols].mean(axis=1, skipna=True)
+                radar_cols.append(sg)
+        radar_title = f"Radar de Médias dos Subgrupos - Eixo {eixo_sub}"
+    else:
+        eixo_sub = st.selectbox("Selecionar eixo para escolher subgrupo", list(eixo_to_subgrupos.keys()), key="radar_ind_eixo")
+        subgrupo_ind = st.selectbox("Selecionar subgrupo", eixo_to_subgrupos[eixo_sub], key="radar_ind_subgrupo")
+        radar_cols = [c for c in df_raw.columns if c.startswith(f"{subgrupo_ind}.")]
+        radar_title = f"Radar de Indicadores - {subgrupo_ind}"
+
+    radar_cols_valid = [c for c in radar_cols if c in radar_df.columns]
+    radar_cols_valid = [c for c in radar_cols_valid if radar_df[c].notna().any()]
+
+    if radar_df.empty or not radar_cols_valid:
+        st.info("Sem dados suficientes para montar o radar com os filtros atuais.")
+    else:
+        fig_radar = go.Figure()
+        for i, (_, row) in enumerate(radar_df.iterrows()):
+            nome = str(row[radar_label]) if radar_label in radar_df.columns else f"Série {i+1}"
+            valores = [row[col] for col in radar_cols_valid]
+            valores.append(valores[0])
+            theta = radar_cols_valid + [radar_cols_valid[0]]
+            fig_radar.add_trace(
+                go.Scatterpolar(
+                    r=valores,
+                    theta=theta,
+                    fill="toself",
+                    name=nome,
+                    opacity=0.55,
+                )
+            )
+
+        indei.style_plotly(fig_radar)
+        fig_radar.update_layout(
+            title=radar_title,
+            polar=dict(radialaxis=dict(visible=True)),
+            height=650,
+            showlegend=True,
+        )
+        st.plotly_chart(fig_radar, use_container_width=True)
 
 st.divider()
