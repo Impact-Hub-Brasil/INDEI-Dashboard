@@ -6,7 +6,7 @@
 
 O **INDEI (Índice de Ecossistemas de Impacto)** é uma ferramenta analítica de vanguarda projetada para diagnosticar a maturidade sistêmica dos 5.570 municípios brasileiros. Diferente de índices tradicionais, o INDEI utiliza uma abordagem holística e decolonial, integrando as dimensões econômica, sociocultural e ambiental para mapear o desenvolvimento territorial real.
 
-Esta dashboard é a evolução tecnológica do relatório lançado no **Museu do Amanhã (2025/2026)**, automatizando a coleta, o processamento e a visualização dos dados.
+Esta dashboard é a evolução tecnológica do relatório lançado no **Museu do Amanhã (em 2026)**, automatizando a coleta, o processamento e a visualização dos dados.
 
 ---
 
@@ -37,9 +37,9 @@ Este projeto utiliza ferramentas de ponta para garantir escalabilidade e reprodu
 
 ## 🚀 Funcionalidades Planejadas
 
-- [ ] **Mapa Interativo:** Visualização de calor por eixo em todos os municípios brasileiros.
-- [ ] **Comparador de Cidades:** Análise lado a lado (Gráfico de Radar) para identificar "Gaps de Conversão".
-- [ ] **Filtros Avançados:** Segmentação por porte populacional, estado e bioma.
+- [ x ] **Mapa Interativo:** Visualização de calor por eixo em todos os municípios brasileiros.
+- [ x ] **Comparador de Cidades:** Análise lado a lado (Gráfico de Radar) para analisar de forma pareada.
+- [ ] **Filtros Avançados:** Segmentação por porte populacional, estado.
 - [ ] **Relatórios Automatizados:** Exportação de PDFs com diagnósticos específicos por município.
 - [ ] **API de Dados:** Acesso público aos dados normalizados do INDEI.
 
