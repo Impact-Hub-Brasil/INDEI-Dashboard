@@ -207,7 +207,7 @@ if not df_est_filtrado.empty and len(data_filtrada) > 0:
         if apply_log:
             fig_box.update_yaxes(type="log")
         fig_box.update_layout(height=500)
-        st.plotly_chart(fig_box, use_container_width=True)
+        st.plotly_chart(fig_box, width='stretch')
         
         st.caption("""
             **Dica Analítica:** O agrupamento 'Por Nível Geográfico' é ideal para ver gargalos estruturais de uma região. 
@@ -249,7 +249,7 @@ with col_h2:
             zmax=1,
         )
         indei.style_plotly(fig_h)
-        st.plotly_chart(fig_h, use_container_width=True)
+        st.plotly_chart(fig_h, width='stretch')
 
 st.divider()
 
@@ -282,7 +282,7 @@ fig_2d = px.scatter(
 )
 indei.style_plotly(fig_2d)
 indei.style_scatter_trendline(fig_2d)
-st.plotly_chart(fig_2d, use_container_width=True)
+st.plotly_chart(fig_2d, width='stretch')
 
 st.divider()
 
@@ -309,7 +309,7 @@ fig_3d = px.scatter_3d(
 )
 fig_3d.update_traces(marker=dict(size=4))
 indei.style_plotly(fig_3d)
-st.plotly_chart(fig_3d, use_container_width=True)
+st.plotly_chart(fig_3d, width='stretch')
 
 # --- SEÇÃO 5: BASE DE DADOS COMPLETA ---
 st.header("5. Base de Dados Original")
@@ -326,4 +326,4 @@ with st.expander("Visualizar Tabela Completa"):
     )
     
     # Exibição da tabela
-    st.dataframe(df_raw, use_container_width=True)
+    st.dataframe(df_raw, width='stretch')

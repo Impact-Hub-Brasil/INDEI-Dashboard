@@ -66,7 +66,7 @@ st.markdown("Um índice de prosperidade sistêmica dos territórios brasileiros.
 st.header("1. Panorama Geográfico")
 st.markdown("Visualize a distribuição da prosperidade pelos estados brasileiros através de diferentes dimensões.")
 
-with st.expander("Selecionar Métrica do Mapa", expanded=True):
+with st.expander("Configurações do Mapa", expanded=True):
     # Dicionário alinhado exatamente com os nomes padronizados no load_data
     map_metrica_opcoes = {
         "Valor geral INDEI": "Valor Geral INDEI",
@@ -74,32 +74,91 @@ with st.expander("Selecionar Métrica do Mapa", expanded=True):
         "Valor eixo sociocultural": "Eixo Sociocultural",
         "Valor eixo ambiental": "Eixo Ambiental"
     }
-    map_metrica_label = st.selectbox(
-        "Escolha a métrica para visualizar no mapa:", 
-        options=list(map_metrica_opcoes.keys()), 
-        key="map_met_sel"
-    )
+    col_map1, col_map2 = st.columns(2)
+    with col_map1:
+        map_metrica_label = st.selectbox(
+            "Escolha a métrica para visualizar no mapa:", 
+            options=list(map_metrica_opcoes.keys()), 
+            key="map_met_sel"
+        )
+    with col_map2:
+        map_nivel_label = st.selectbox(
+            "Visualizar por:",
+            options=["Estados", "Municípios", "Regiões"],
+            index=0,
+            key="map_nivel_sel"
+        )
     map_col_selecionada = map_metrica_opcoes[map_metrica_label]
 
-# Agrupa por estado para exibir no mapa de calor
-df_mapa_plot = df_raw.groupby(['Estado', 'Sigla UF'])[map_col_selecionada].mean().reset_index()
-
-fig_mapa = px.choropleth(
-    df_mapa_plot,
-    geojson="https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson",
-    locations="Sigla UF",
-    featureidkey="properties.sigla",
-    color=map_col_selecionada,
-    hover_name="Estado",
-    color_continuous_scale=indei.SEQUENTIAL_SCALE,
-    labels={map_col_selecionada: map_metrica_label},
-)
+if map_nivel_label == "Municípios":
+    df_mapa_plot = df_raw.groupby(['Código IBGE', 'Ecossistema', 'Estado'])[map_col_selecionada].mean().reset_index()
+    df_mapa_plot['Código IBGE'] = df_mapa_plot['Código IBGE'].astype(str)
+    
+    fig_mapa = px.choropleth(
+        df_mapa_plot,
+        geojson="https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-100-mun.json",
+        locations="Código IBGE",
+        featureidkey="properties.id",
+        color=map_col_selecionada,
+        hover_name="Ecossistema",
+        hover_data={"Estado": True, "Código IBGE": False},
+        color_continuous_scale=indei.SEQUENTIAL_SCALE,
+        labels={map_col_selecionada: map_metrica_label},
+    )
+    
+    # --- Camada de fundo com o mapa dos Estados em cinza ---
+    estados_br = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"]
+    fig_mapa.add_trace(go.Choropleth(
+        geojson="https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson",
+        locations=estados_br,
+        z=[0] * 27, # Valor neutro para a cor
+        featureidkey="properties.sigla",
+        colorscale=[[0, '#e0e0e0'], [1, '#e0e0e0']], # Cinza claro para o fundo
+        showscale=False,
+        marker_line_color='#ffffff', # Bordas dos estados em branco
+        marker_line_width=0.8,
+        hoverinfo='skip' # Impede que o mouse mostre informações ao passar no fundo cinza
+    ))
+    
+    # Reordena as camadas: coloca o fundo dos estados para trás dos municípios
+    fig_mapa.data = fig_mapa.data[::-1]
+    # --------------------------------------------------------------------
+elif map_nivel_label == "Regiões":
+    df_regiao = df_raw.groupby('Região')[map_col_selecionada].mean().reset_index()
+    df_estado_regiao = df_raw[['Estado', 'Sigla UF', 'Região']].drop_duplicates()
+    df_mapa_plot = df_estado_regiao.merge(df_regiao, on='Região')
+    
+    fig_mapa = px.choropleth(
+        df_mapa_plot,
+        geojson="https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson",
+        locations="Sigla UF",
+        featureidkey="properties.sigla",
+        color=map_col_selecionada,
+        hover_name="Região",
+        hover_data={"Estado": True, "Sigla UF": False},
+        color_continuous_scale=indei.SEQUENTIAL_SCALE,
+        labels={map_col_selecionada: map_metrica_label},
+    )
+else:
+    # Agrupa por estado para exibir no mapa de calor
+    df_mapa_plot = df_raw.groupby(['Estado', 'Sigla UF'])[map_col_selecionada].mean().reset_index()
+    
+    fig_mapa = px.choropleth(
+        df_mapa_plot,
+        geojson="https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson",
+        locations="Sigla UF",
+        featureidkey="properties.sigla",
+        color=map_col_selecionada,
+        hover_name="Estado",
+        color_continuous_scale=indei.SEQUENTIAL_SCALE,
+        labels={map_col_selecionada: map_metrica_label},
+    )
 fig_mapa.update_geos(fitbounds="geojson", visible=False)
 indei.style_plotly(fig_mapa)
 indei.style_choropleth_coloraxis(fig_mapa)
 indei.style_choropleth_map_canvas(fig_mapa)
 fig_mapa.update_layout(height=700, margin={"r": 0, "t": 0, "l": 0, "b": 0})
-st.plotly_chart(fig_mapa, use_container_width=True)
+st.plotly_chart(fig_mapa, width="stretch")
 
 st.divider()
 
@@ -143,7 +202,7 @@ if not df_rank_filtered.empty:
     )
     fig_bar.update_xaxes(categoryorder="total descending")
     indei.style_plotly(fig_bar)
-    st.plotly_chart(fig_bar, use_container_width=True)
+    st.plotly_chart(fig_bar, width="stretch")
 
 st.divider()
 
@@ -209,8 +268,7 @@ with st.expander("Ver tabela de subgrupos (código, nome e descritivo)", expande
         }
         for codigo in ordem_subgrupos
     ]
-    st.dataframe(pd.DataFrame(subgrupos_meta), use_container_width=True, hide_index=True, height=460)
-
+    st.dataframe(pd.DataFrame(subgrupos_meta), width='stretch', hide_index=True, height=460)
 
 with st.expander("Ver tabela completa de indicadores (código, nome e fonte)", expanded=False):
     indicadores_meta = [
@@ -277,7 +335,7 @@ with st.expander("Ver tabela completa de indicadores (código, nome e fonte)", e
         {"Código": "MED 5.4", "Indicador": "Índice ODS 14 Vida na Água", "Fonte": "Índice de Desenvolvimento Sustentável das Cidades"},
         {"Código": "MED 5.5", "Indicador": "Índice ODS 15 Vida Terrestre", "Fonte": "Índice de Desenvolvimento Sustentável das Cidades"},
     ]
-    st.dataframe(pd.DataFrame(indicadores_meta), use_container_width=True, hide_index=True, height=460)
+    st.dataframe(pd.DataFrame(indicadores_meta), width="stretch", hide_index=True, height=460)
 
 tab_barras, tab_radar = st.tabs(["Gráfico de Barras", "Gráfico de Radar"])
 
@@ -320,10 +378,6 @@ with tab_barras:
 
     cols_indicadores = [c for c in df_raw.columns if c.startswith(f"{sub_sel}.")]
 
-
-    # Identifica colunas do subgrupo selecionado (ex: EC1.1, EC1.2...)
-    cols_indicadores = [c for c in df_raw.columns if c.startswith(f"{sub_sel}.")]
-
     if nivel_ind == "Municipal":
         df_ind_final = df_raw[df_raw["Ecossistema"].isin(territorio)]
         label_col = "Ecossistema"
@@ -347,7 +401,7 @@ with tab_barras:
             color_discrete_sequence=indei.COLORWAY,
         )
         indei.style_plotly(fig_ind)
-        st.plotly_chart(fig_ind, use_container_width=True)
+        st.plotly_chart(fig_ind, width="stretch")
 
 with tab_radar:
     st.markdown("Compare territórios com visualização em radar por eixos, subgrupos ou indicadores.")
@@ -444,6 +498,6 @@ with tab_radar:
             height=650,
             showlegend=True,
         )
-        st.plotly_chart(fig_radar, use_container_width=True)
+        st.plotly_chart(fig_radar, width="stretch")
 
 st.divider()

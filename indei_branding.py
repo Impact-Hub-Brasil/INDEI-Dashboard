@@ -211,13 +211,13 @@ def sidebar_branding(page_title: str | None = None) -> None:
             unsafe_allow_html=True,
         )
     elif LOGO_PNG_PATH.is_file():
-        st.sidebar.image(str(LOGO_PNG_PATH), use_container_width=True)
+        st.sidebar.image(str(LOGO_PNG_PATH), width='stretch')
     if page_title:
         st.sidebar.markdown(f"### {page_title}")
     st.sidebar.divider()
     st.sidebar.markdown(SIDEBAR_INDEI_ABOUT_MD)
     if IH_BRASIL_LOGO_PATH.is_file():
-        st.sidebar.image(str(IH_BRASIL_LOGO_PATH), use_container_width=True)
+        st.sidebar.image(str(IH_BRASIL_LOGO_PATH), width='stretch')
 
 
 def _visual_subdirs() -> tuple[Path | None, Path | None]:
@@ -256,11 +256,11 @@ def decorative_svg_strip(keys: tuple[str, ...] = ("Estrela", "Mandacaru", "Guari
         f = _find_svg(filled, key)
         with row1[i]:
             if o:
-                st.image(str(o), use_container_width=True)
+                st.image(str(o), width='stretch')
             st.caption("Traçado")
         with row2[i]:
             if f:
-                st.image(str(f), use_container_width=True)
+                st.image(str(f), width='stretch')
             st.caption("Preenchido")
 
 
