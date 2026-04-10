@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import indei_branding as indei
+import os
 
 # Configuração da página
 st.set_page_config(page_title="INDEI — Análises avançadas", page_icon="📈", layout="wide")
@@ -16,7 +17,13 @@ st.markdown("Explore a biometria do ecossistema de impacto através de estatíst
 @st.cache_data
 def load_data():
     try:
-        url = st.secrets["csv_url"]
+        # TENTA PRIMEIRO NO RAILWAY: Busca nas variáveis de ambiente do sistema
+        url = os.environ.get("csv_url")
+        
+        # SE NÃO ENCONTRAR (Testes Locais): Busca no secrets.toml do Streamlit
+        if not url:
+            url = st.secrets["csv_url"]
+
         df = pd.read_csv(url, sep=None, engine='python', encoding='utf-8', decimal=',', thousands='.')
         
         # 1. Limpa espaços extras nos nomes das colunas
